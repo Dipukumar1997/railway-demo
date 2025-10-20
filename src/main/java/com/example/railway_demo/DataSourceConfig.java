@@ -13,22 +13,37 @@ public class DataSourceConfig {
 
     @Bean
     public DataSource dataSource() throws URISyntaxException {
-        // Read the DATABASE_URL environment variable provided by Railway
+        // Read the database URL from the environment
         URI dbUri = new URI(System.getenv("DATABASE_URL"));
 
-        // Extract the username and password from the URI
-        String username = dbUri.getUserInfo().split(":")[0];
-        String password = dbUri.getUserInfo().split(":")[1];
+        // Initialize username and password as null
+        String username = null;
+        String password = null;
 
-        // Construct the final JDBC URL from the parts of the URI
-        // This transforms "postgres://" to "jdbc:postgresql://"
+        // Check if user info is present in the URL
+        String userInfo = dbUri.getUserInfo();
+        if (userInfo != null) {
+            // If it exists, split it into username and password
+            String[] userParts = userInfo.split(":");
+            username = userParts[0];
+            password = userParts[1];
+        }
+
+        // Construct the JDBC URL
         String jdbcUrl = "jdbc:postgresql://" + dbUri.getHost() + ':' + dbUri.getPort() + dbUri.getPath();
 
-        // Use DataSourceBuilder to create and configure the DataSource
-        return DataSourceBuilder.create()
-                .url(jdbcUrl)
-                .username(username)
-                .password(password)
-                .build();
+        // Build the DataSource object
+        DataSourceBuilder<?> dataSourceBuilder = DataSourceBuilder.create()
+                .url(jdbcUrl);
+        
+        // Only set username and password if they were found in the URL
+        if (username != null) {
+            dataSourceBuilder.username(username);
+        }
+        if (password != null) {
+            dataSourceBuilder.password(password);
+        }
+
+        return dataSourceBuilder.build();
     }
 }
